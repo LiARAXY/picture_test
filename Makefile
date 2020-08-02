@@ -1,5 +1,5 @@
 TARGET=picture_test
-EXTRA_LIB_DIR=/usr/local/armv7-lib-extra
+EXTRA_LIB_DIR=
 CUR_DIR=$(shell pwd)
 DIR_SRC=$(CUR_DIR)/src
 DIR_OBJ=$(CUR_DIR)/obj
