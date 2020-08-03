@@ -8,6 +8,6 @@
 #include <stdlib.h>
 #include <wchar.h>
 
-int utf16_text_process(char *src,wchar_t *charCode,unsigned int mode,unsigned int len);
+int utf16_text_process(char *src,wchar_t *charCode,unsigned int len);
 
 #endif

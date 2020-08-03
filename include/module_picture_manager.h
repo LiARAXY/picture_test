@@ -18,10 +18,10 @@ typedef struct __picture_info
 typedef struct __picture_format_ops
 {
     char    *name;
-    int     (*init)(char*);
+    int     (*init)(void*);
     int     (*formatCorrect)(void*);
     int     (*getInfo)(void*, p_picture_info);
-    int     (*getRGBdata)(void*,unsigned int*);
+    int     (*getRGBdata)(void*,p_picture_info,unsigned int*);
     void    (*release)(void*);
     int     (*open)(void*,char*,char*);
     int     (*close)(void*);
@@ -38,7 +38,7 @@ typedef struct __picture_var
 
 typedef struct __picture_linklist_node
 {
-    picture_format_ops  operation;
+    p_picture_format_ops  operation;
     struct __picture_linklist_node *prev;
     struct __picture_linklist_node *next;
 }picture_linklist_node,*p_picture_linklist_node;
@@ -48,17 +48,17 @@ int picture_module_init(p_picture_var var);
 void picture_plugin_deselect(void);
 void picture_module_remove(void);
 
-int picture_plugin_init(void *format_var, char *filename);
+int picture_plugin_init(void *format_var);
 int picture_formatCorrect(void *format_var);
 int picture_getInfo(void *format_var, p_picture_info info);
-int picture_decode(void *format_var, unsigned int *data);
+int picture_decode(void *format_var, p_picture_info info, unsigned int *data);
 int picture_zoom(p_picture_info info_src,p_picture_info info_dst, unsigned int *data_src, unsigned int *data_dst);
 void picture_plugin_release(void *format_var);
 int picture_open(void *format_var, char *filename,char *open_mode);
 int picture_close(void *format_var);
-int picture_display(unsigned int x, unsigned int y, char *rgb_data, p_picture_info info);
+int picture_display(unsigned int x, unsigned int y, unsigned int *rgb_data, p_picture_info info);
 
-int picture_plugin_register(picture_format_ops data);
-void picture_plugin_unregister(picture_format_ops data);
+int picture_plugin_register(p_picture_format_ops data);
+void picture_plugin_unregister(p_picture_format_ops data);
 
 #endif

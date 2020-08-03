@@ -11,7 +11,7 @@ typedef struct __format_jpeg
     unsigned int file_data_Size; 
 }format_jpeg,*p_format_jpeg;
 
-int picture_plugin_register_jpeg(void);
-void picture_plugin_unregister_jpeg(void);
+int picture_plugin_register_format_jpeg(void);
+void picture_plugin_unregister_format_jpeg(void);
 
 #endif

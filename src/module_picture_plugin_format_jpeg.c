@@ -3,11 +3,13 @@
 
 #define PLUGIN_NAME "JPEG"
 
-static int isJPEG(p_format_jpeg var)
+static int isJPEG(void *format_var)
 {
 	int ret;
+	p_format_jpeg var;
+	var = (p_format_jpeg)format_var;
 	jpeg_stdio_src(&var->T_decompress, var->jpeg_fp);
-	ret = fclose();
+	ret = fclose(var->jpeg_fp);
 	if (ret)
 	{
 		printf("ERROR : fclose failed!\n");
@@ -21,10 +23,12 @@ static int isJPEG(p_format_jpeg var)
 	}
 }
 
-static int jpeg_open(p_format_jpeg var, char *filename,char *mode)
+static int jpeg_open(void *format_var, char *filename,char *mode)
 {
+	p_format_jpeg var;
+	var = (p_format_jpeg)format_var;
 	var->jpeg_fp = fopen(filename,mode);
-    if (var->jpeg_fp = NULL) 
+    if (var->jpeg_fp == NULL) 
 	{  
         printf("ERROR : can't open %s\n", filename);  
         return -1;
@@ -32,18 +36,32 @@ static int jpeg_open(p_format_jpeg var, char *filename,char *mode)
 	else return 0;
 }
 
-static int jpeg_close(p_format_jpeg var)
+static int jpeg_close(void *format_var)
 {
-	fclose(var->jpeg_fp);
+	p_format_jpeg var;
+	var = (p_format_jpeg)format_var;
+	int err;
+	err = fclose(var->jpeg_fp);
+	if(err) 
+	{
+		printf("ERROR : jpeg_close failed!\n");
+		perror("fclose");
+		return err;
+	}
+	return 0;
 }
 
-static void jpeg_release(p_format_jpeg var)
+static void jpeg_release(void *format_var)
 {
+	p_format_jpeg var;
+	var = (p_format_jpeg)format_var;
 	jpeg_destroy_decompress(&var->T_decompress);
 }
 
-static int jpeg_init(p_format_jpeg var)
+static int jpeg_init(void *format_var)
 {
+	p_format_jpeg var;
+	var = (p_format_jpeg)format_var;
 	var->jpeg_fp = NULL;
 	var->file_data_Size = 0;
 	/* 分配和初始化一个jpeg_decompress_struct结构体 */
@@ -55,8 +73,10 @@ static int jpeg_init(p_format_jpeg var)
 	return 0;
 }
 
-static int jpeg_get_RGBdata(p_format_jpeg var,p_picture_info info, unsigned int *data_RGB)
+static int jpeg_get_RGBdata(void *format_var,p_picture_info info, unsigned int *data_RGB)
 {
+	p_format_jpeg var;
+	var = (p_format_jpeg)format_var;
 	int rowSize,i,j;
 	unsigned char *buffer;  
 	unsigned char *help;//辅助拷贝变量
@@ -97,9 +117,10 @@ static int jpeg_get_RGBdata(p_format_jpeg var,p_picture_info info, unsigned int 
 	return 0;
 }
 
-static int jpeg_get_info(p_format_jpeg var, p_picture_info info)
+static int jpeg_get_info(void *format_var, p_picture_info info)
 {
-	
+	p_format_jpeg var;
+	var = (p_format_jpeg)format_var;
 	jpeg_read_header(&var->T_decompress, TRUE);
 	info->resX 		= var->T_decompress.output_width;
 	info->resY 		= var->T_decompress.output_height;

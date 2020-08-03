@@ -5,7 +5,7 @@ static p_picture_linklist_node picture_linklist_head,picture_linklist_tail;
 static p_picture_format_ops plugin_selected;
 
 static void (*put_pixel)(int,int,unsigned int);
-static int  (*zoom_func)(p_picture_info, p_picture_info, unsigned int*, unsigned int*);
+static PF_zoom_function zoom_func;
 
 static unsigned border_x,border_y;
 
@@ -106,6 +106,18 @@ static int picture_plugins_register(void)
         printf("ERROR : bmp plugin register failed\n");
         return err;
     }
+    err = picture_plugin_register_format_jpeg();
+    if(err)
+    {
+        printf("ERROR : jpeg plugin register failed\n");
+        return err;
+    }
+    err = picture_plugin_register_format_png();
+    if(err)
+    {
+        printf("ERROR : png plugin register failed\n");
+        return err;
+    }
     return 0;
 }
 
@@ -177,7 +189,6 @@ int picture_module_init(p_picture_var var)
 
 void picture_module_remove(void)
 {
-    picture_plugin_release();
     picture_plugin_deselect();
     picture_plugins_unregister();
     picture_list_destory();
@@ -197,7 +208,7 @@ int picture_getInfo(void *format_var, p_picture_info info)
     return ret;
 }
 
-int picture_decode(void *format_var, p_picture_info info, int *data)
+int picture_decode(void *format_var, p_picture_info info,unsigned int *data)
 {
     int ret;
     ret = plugin_selected->getRGBdata(format_var,info,data);
@@ -207,14 +218,14 @@ int picture_decode(void *format_var, p_picture_info info, int *data)
 int picture_open(void *format_var, char *filename, char *open_mode)
 {
     int ret;
-    ret =  plugin_selected->fopen(format_var, filename,open_mode);
+    ret =  plugin_selected->open(format_var, filename,open_mode);
     return ret;
 }
 
 int picture_close(void *format_var)
 {
     int ret;
-    plugin_selected->fclose(format_var);
+    ret = plugin_selected->close(format_var);
     return ret;
 }
 
@@ -230,7 +241,7 @@ int picture_zoom(p_picture_info info_src,p_picture_info info_dst, unsigned int *
     return ret;
 }
 
-int picture_display(unsigned int x, unsigned int y, char *rgb_data, p_picture_info info)
+int picture_display(unsigned int x, unsigned int y, unsigned int *rgb_data, p_picture_info info)
 {
     int i;
     unsigned int m,n;

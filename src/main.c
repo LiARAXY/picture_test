@@ -16,6 +16,7 @@
 #include "module_display_plugins.h"
 #include "module_font_manager.h"
 #include "module_font_plugins.h"
+#include "module_text.h"
 #include "module_picture_manager.h"
 #include "module_picture_plugins.h"
 
@@ -23,6 +24,7 @@
 
 #define BUF_SIZE (1024*4)
 
+#define TESTFILE_FONT	"./msyh.ttc"
 #define TESTFILE_TEXT 	"./test.dat"
 #define TESTFILE_BMP 	"./test.bmp"
 #define TESTFILE_JPEG 	"./test.jpeg"
@@ -66,17 +68,17 @@ int font_test(void)
 	{
 		printf("buf[%d] = %02x\n",i,buf[i]);
 	}
-	unicode_array = malloc( (len + 1)*4 );
+	unicode_array = malloc( (len + 1)*sizeof(wchar_t) );
 	if(unicode_array == NULL)
 	{
 		return -1;
 	}
 	memset(unicode_array, 0, (len + 1)*4 );
 	
-	err = file_utf16_data_process(buf,unicode_array);
+	err = utf16_text_process(buf,unicode_array,len);
 	if(err < 0)
 	{
-		printf("ERROR : file_utf16_data_process is failed!\n");
+		printf("ERROR : utf16_text_process is failed!\n");
 		return -1;
 	}
 	len = wcslen(unicode_array);
@@ -138,12 +140,16 @@ int picture_test(void)
 				p_format_bmp PT_bmp_test;
 				printf("BMP TEST\n");
 				PT_bmp_test = malloc(sizeof(format_bmp));
-				picture_plugin_format_select("bmp");
-				picture_plugin_init(PT_bmp_test);
-				picture_open(PT_bmp_test, TESTFILE_BMP,"rb");
-				picture_getInfo(PT_bmp_test,info);
-				rgb_data = malloc(sizeof(unsigned int)*info->data_len);
-				picture_decode(PT_bmp_test,rgb_data);
+				ret = picture_plugin_format_select("bmp");
+				if(ret) return -1;
+				ret = picture_plugin_init(PT_bmp_test);
+				if(ret) return -1;
+				ret = picture_open(PT_bmp_test, TESTFILE_BMP,"rb");
+				if(ret) return -1;
+				ret = picture_getInfo(PT_bmp_test,&info);
+				if(ret) return -1;
+				rgb_data = malloc(sizeof(unsigned int)*info.data_len);
+				picture_decode(PT_bmp_test,&info,rgb_data);
 				picture_display(10,10,rgb_data,&info);
 				free(rgb_data);
 				free(PT_bmp_test);
@@ -155,12 +161,16 @@ int picture_test(void)
 				p_format_jpeg PT_jpeg_test;
 				printf("JPEG TEST\n");
 				PT_jpeg_test = malloc(sizeof(format_jpeg));
-				picture_plugin_format_select("jpeg");
-				picture_plugin_init(PT_jpeg_test);
-				picture_open(PT_jpeg_test, TESTFILE_JPEG,"rb");
-				picture_getInfo(PT_jpeg_test,info);
-				rgb_data =  malloc(sizeof(unsigned int)*info->data_len);
-				picture_decode(PT_jpeg_test,rgb_data);
+				ret = picture_plugin_format_select("jpeg");
+				if(ret) return -1;
+				ret = picture_plugin_init(PT_jpeg_test);
+				if(ret) return -1;
+				ret = picture_open(PT_jpeg_test, TESTFILE_JPEG,"rb");
+				if(ret) return -1;
+				ret = picture_getInfo(PT_jpeg_test,&info);
+				if(ret) return -1;
+				rgb_data =  malloc(sizeof(unsigned int)*info.data_len);
+				picture_decode(PT_jpeg_test,&info,rgb_data);
 				picture_display(10,10,rgb_data,&info);
 				free(rgb_data);
 				free(PT_jpeg_test);
@@ -172,12 +182,16 @@ int picture_test(void)
 				p_format_png PT_png_test;
 				printf("PNG TEST\n");
 				PT_png_test = malloc(sizeof(format_png));
-				picture_plugin_format_select("png");
-				picture_plugin_init(PT_png_test);
-				picture_open(PT_png_test, TESTFILE_PNG,"rb");
-				picture_getInfo(PT_png_test,info);
-				rgb_data = malloc(sizeof(unsigned int)*info->data_len);
-				picture_decode(PT_png_test,rgb_data);
+				ret = picture_plugin_format_select("png");
+				if(ret) return -1;
+				ret = picture_plugin_init(PT_png_test);
+				if(ret) return -1;
+				ret = picture_open(PT_png_test, TESTFILE_PNG,"rb");
+				if(ret) return -1;
+				ret = picture_getInfo(PT_png_test,&info);
+				if(ret) return -1;
+				rgb_data = malloc(sizeof(unsigned int)*info.data_len);
+				picture_decode(PT_png_test,&info,rgb_data);
 				picture_display(10,10,rgb_data,&info);
 				free(rgb_data);
 				free(PT_png_test);
@@ -366,6 +380,7 @@ int main (int argc,char **argv)
 	process_main();
 	
 	/* 移除各个模块 */
+	picture_module_remove();
 	font_module_remove();
 	display_module_remove();
 	

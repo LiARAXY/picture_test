@@ -1,12 +1,12 @@
 TARGET=picture_test
-EXTRA_LIB_DIR=
+EXTRA_LIB_DIR=/usr/local/armv7-lib-extra
 CUR_DIR=$(shell pwd)
 DIR_SRC=$(CUR_DIR)/src
 DIR_OBJ=$(CUR_DIR)/obj
 DIR_OUT=$(CUR_DIR)/bin
 INC=-I$(EXTRA_LIB_DIR)/include -I$(CUR_DIR)/include
 LIB=-L$(EXTRA_LIB_DIR)/lib
-LFLAGS=-lm -lfreetype -lcharset -liconv 
+LFLAGS=-lm -lfreetype -lcharset -liconv -ljpeg -lpng -lz
 
 SRC = ${wildcard ${DIR_SRC}/*c}
 OBJ = $(patsubst %.c, ${DIR_OBJ}/%.o, $(notdir ${SRC}))

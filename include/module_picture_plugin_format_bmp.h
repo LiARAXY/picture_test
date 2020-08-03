@@ -1,6 +1,11 @@
 #ifndef __MODULE_PICTURE_FORMAT_BMP_H__
 #define __MODULE_PICTURE_FORMAT_BMP_H__
 
+#include <sys/stat.h>
+#include <sys/mman.h>
+
+
+
 #pragma pack(push) /* 将当前pack设置压栈保存 */
 #pragma pack(1)    /* 必须在结构体定义之前使用,这是为了让结构体中各成员按1字节对齐 */
 typedef struct __bmp_file_header
@@ -27,7 +32,6 @@ typedef struct __bmp_info_header
 }bmp_info_header,*p_bmp_info_header;
 #pragma pack(pop) /* 恢复先前的pack设置 */
 
-
 typedef struct __format_bmp
 {
     FILE *bmp_fp;
@@ -38,8 +42,7 @@ typedef struct __format_bmp
     unsigned int mmapSize;
 }format_bmp,*p_format_bmp;
 
-
-int picture_plugin_register_bmp(void);
-void picture_plugin_unregister_bmp(void);
+int picture_plugin_register_format_bmp(void);
+void picture_plugin_unregister_format_bmp(void);
 
 #endif

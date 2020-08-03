@@ -1,8 +1,8 @@
 #include "module_text.h"
 
-int utf16_text_process(char *src,wchar_t *charCode,unsigned int mode,unsigned int len)
+int utf16_text_process(char *src,wchar_t *charCode,unsigned int len)
 {
-	unsigned int len,i,j,mode;
+	unsigned int i,j,mode;
 	for (i = 0,j = 0; i < len; i=i+2)
 	{
 		if(i<2)

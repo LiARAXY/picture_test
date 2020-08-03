@@ -3,17 +3,19 @@
 
 #define PLUGIN_NAME "PNG"
 
-static int isPNG(p_format_png var)
+static int isPNG(void *format_var)
 {
 	int err;
-	char tmp[8];
+	p_format_png var;
+	var = (p_format_png)format_var;
+	unsigned char tmp[8];
 	err = fread(tmp,1,8,var->png_fp);
 	if (err != 8)
 	{
 		printf("ERROR : fread failed!\n");
 		return -1;
 	}
-	err = png_sig_cmp(tmp, 0, 8);
+	err = png_sig_cmp((png_bytep)&tmp, 0, 8);
 	if (err)
 	{
 		printf("ERROR : It is not png file!\n");
@@ -22,10 +24,12 @@ static int isPNG(p_format_png var)
 	return 0;
 }
 
-static int png_open(p_format_png var, char *filename,char *mode)
+static int png_open(void *format_var, char *filename,char *mode)
 {
+	p_format_png var;
+	var = (p_format_png)format_var;
 	var->png_fp = fopen(filename,mode);
-	if (var->png_fp = NULL) 
+	if (var->png_fp == NULL) 
 	{
         printf("ERROR : can't open %s\n", filename);  
         return -1;  
@@ -33,27 +37,33 @@ static int png_open(p_format_png var, char *filename,char *mode)
 	else return 0;
 }
 
-static int png_close(p_format_png var)
+static int png_close(void *format_var)
 {
 	int err;
+	p_format_png var;
+	var = (p_format_png)format_var;
 	err = fclose(var->png_fp);
 	if(err)
 	{
-		printf("ERROR : png_fclose failed!\n");
-		return -1;
+		printf("ERROR : png_close failed!\n");
+		perror("fclose");
+		return err;
 	}
 	return 0;
 }
 
-static void png_release(p_format_png var)
+static void png_release(void *format_var)
 {
-	if(var->png_fp != NULL) png_fclose();
+	p_format_png var;
+	var = (p_format_png)format_var;
+	if(var->png_fp != NULL) png_close(format_var);
 	png_destroy_read_struct(&var->PT_png, &var->PT_pngInfo, 0);
 }
 
-static int png_init(p_format_png var)
+static int png_init(void *format_var)
 {
-    int err;
+	p_format_png var;
+	var = (p_format_png)format_var;
 	var->PT_png = NULL;
 	var->PT_pngInfo = NULL;
 	var->png_fp = NULL;
@@ -78,10 +88,10 @@ static int png_init(p_format_png var)
 	return 0;
 }
 
-
-
-static int png_get_info(p_format_png var, p_picture_info info)
+static int png_get_info(void *format_var, p_picture_info info)
 {
+	p_format_png var;
+	var = (p_format_png)format_var;
 	png_read_png(var->PT_png, var->PT_pngInfo, PNG_TRANSFORM_EXPAND, 0); 
 	var->channels 	= png_get_channels(var->PT_png, var->PT_pngInfo);
 	info->resX 		= png_get_image_width(var->PT_png, var->PT_pngInfo);
@@ -91,60 +101,64 @@ static int png_get_info(p_format_png var, p_picture_info info)
 	return 0;
 }
 
-static int png_get_RGBdata(p_format_png var,p_picture_info info, unsigned int *data)
+static int png_get_RGBdata(void *format_var,p_picture_info info, unsigned int *data)
 {
-	int err,i,j,k,iPos;
+	int i,j,k,iPos,rawDataSize;
 	png_bytepp tmp;
 	iPos = 0;
-	var->rawData = malloc( (var->channels * info->data_len) + 1 );
+	p_format_png var;
+	var = (p_format_png)format_var;
 	/* 将info_ptr中的图像数据读取出来 */
-	tmp = png_get_rows(ptData->ptPngStrPoint, ptData->ptPngInfoPoint); //也可以分别每一行获取png_get_rowbytes();
-	if (var->channels == 4) { //判断是24位还是32位
-		ptData->iRawSize= var->resX * var->resY*4; //申请内存先计算空间	
-		var->rawData= (unsigned char*)malloc(ptData->iRawSize);
-		if (NULL == var->rawData) {
+	tmp = png_get_rows(var->PT_png, var->PT_pngInfo); //也可以分别每一行获取png_get_rowbytes();
+	if (var->channels == 4) 
+	{ //判断是24位还是32位
+		rawDataSize= info->resX * info->resY *4; //申请内存先计算空间	
+		var->rawData= (unsigned char*)malloc(rawDataSize);
+		if (NULL == var->rawData) 
+		{
 			printf("malloc rgba faile ...\n");
-			png_destroy_read_struct(&ptData->ptPngStrPoint, &ptData->ptPngInfoPoint, 0);
-			fclose(ptData->ptFp);
+			png_destroy_read_struct(&var->PT_png, &var->PT_pngInfo, 0);
+			png_close(format_var);
 			return -1;
 		}
 		/* 从tmp里读出实际的RGBA数据出来 
 		 * 源数据为ABGR格式*/
-		for (i = 0; i < var->resY; i++)
+		for (i = 0; i < info->resY; i++)
 		{ 
-			for (j = 0; j < var->resX * 4; j += 4) 
+			for (j = 0; j < info->resX * 4; j += 4) 
 			{
 				var->rawData[iPos++] = tmp[i][j + 3];	/* R */
 				var->rawData[iPos++] = tmp[i][j + 2];	/* G */
 				var->rawData[iPos++] = tmp[i][j + 1];	/* B */
 				var->rawData[iPos++] = tmp[i][j + 0];	/* A */
 				/* 将得到的RGBA转换为RGB888格式 */
-				data[k] = (var->rawData[k]<<(8*2)) + (var->rawData[k+1]<<(8*1)) + (var->rawData[k+2]<<(8*0));
+				data[k] = (var->rawData[iPos - 3]<<(8*2)) + (var->rawData[iPos - 2]<<(8*1)) + (var->rawData[iPos - 1]<<(8*0));
 				k++;
 			}
-			
-
 		}
 	}
 	else if (var->channels == 3 ) 
 	{ //判断颜色深度是24位还是32位
-		ptData->iRgbSize= var->resX * var->resY*3; //申请内存先计算空间	
-		ptData->pucRgbData = (unsigned char*)malloc(ptData->iRgbSize);
-		if (NULL == ptData->pucRgbData) {
+		rawDataSize= info->resX * info->resY*3; //申请内存先计算空间	
+		var->rawData = (unsigned char*)malloc(rawDataSize);
+		if (NULL == var->rawData) 
+		{
 			printf("malloc rgba faile ...\n");
-			png_destroy_read_struct(&ptData->ptPngStrPoint, &ptData->ptPngInfoPoint, 0);
-			fclose(ptData->ptFp);
+			png_destroy_read_struct(&var->PT_png, &var->PT_pngInfo, 0);
+			png_close(format_var);
 			return -1;
 		}
 		/* 从tmp里读出实际的RGB数据
 		  * 源数据为BGR格式*/
-		for (i = 0; i < var->resY; i ++) 
+		for (i = 0; i < info->resY; i ++) 
 		{
-			for (j = 0; j < var->resX*3; j += 3) 
+			for (j = 0; j < info->resX*3; j += 3) 
 			{
-				var->rawData[iPos++] = tmp[i][j+2];
-				var->rawData[iPos++] = tmp[i][j+1];
-				var->rawData[iPos++] = tmp[i][j+0];
+				var->rawData[iPos++] = tmp[i][j+2];	/* R */
+				var->rawData[iPos++] = tmp[i][j+1];	/* G */
+				var->rawData[iPos++] = tmp[i][j+0];	/* B */
+				data[k] = (var->rawData[iPos - 2]<<(8*2)) + (var->rawData[iPos - 1]<<(8*1)) + (var->rawData[iPos]<<(8*0));
+				k++;
 			}
 		}
 	}
@@ -165,7 +179,7 @@ picture_format_ops png_ops = {
 int picture_plugin_register_format_png(void)
 {	
 	int err;
-	err = picture_plugin_format_register(&png_ops);
+	err = picture_plugin_register(&png_ops);
 	return err;
 }
 

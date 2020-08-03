@@ -4,15 +4,17 @@
 /* BMP文件中数据以小端模式存放 */
 #define PLUGIN_NAME "BMP"
 
-static int mmapFile(p_format_bmp var)
+static int mmapFile(void *format_var)
 {
-	if (var->fp == NULL)
+	p_format_bmp var;
+	var = (p_format_bmp)format_var;
+	if (var->bmp_fp == NULL)
 	{
 		return -1;
 	}
 	int fd;
 	struct stat file_status;
-	fd = fileno(var->fp);
+	fd = fileno(var->bmp_fp);
 	fstat(fd,&file_status);
 	var->mmapSize = file_status.st_size;
 	var->memMap_bmp = mmap(NULL, var->mmapSize, PROT_READ, MAP_SHARED, fd, 0);
@@ -27,17 +29,19 @@ static int mmapFile(p_format_bmp var)
 	}
 }
 
-static int dataRead(p_format_bmp var, unsigned int len,void *data)
+static int dataRead(void *format_var, unsigned int len,void *data)
 {
 	char *tmp,*target,*start;
 	unsigned int i;
-	int err;
+	p_format_bmp var;
+	var = (p_format_bmp)format_var;
+
 	tmp = malloc(len);
 	if (tmp == NULL) return -1;
 	memset(tmp, 0, len);
 	target = (char *)data;
 	start = var->memMap_bmp + var->file_offset;
-	memcpy(tmp,var->bmp_fp,len);
+	memcpy(tmp,start,len);
 	for(i = 0; i < len; i++)
 	{
 		target[(len-1) - i] = tmp[i];
@@ -47,9 +51,11 @@ static int dataRead(p_format_bmp var, unsigned int len,void *data)
 	return 0;
 }
 
-static int isBMP(p_format_bmp var)
+static int isBMP(void *format_var)
 {
 	char tmp[2];
+	p_format_bmp var;
+	var = (p_format_bmp)format_var;
 	fread(tmp,1,2,var->bmp_fp);
 	fclose(var->bmp_fp);
 	/*          B                   M                 */
@@ -65,26 +71,25 @@ static int bmp_get_fileHeader(p_format_bmp var)
 {
 	int err;
 	var->file_offset = 0;
+	err = dataRead(var, sizeof(bmp_file_header),var->PT_fileHeader);
 	if (err)
 	{
 		printf("ERROR : get file header failed!\n");
 		return -1;
 	}
-	dataRead(var, sizeof(bmp_file_header),var->PT_fileHeader);
 	return 0;
 }
 
 static int bmp_get_infoHeader(p_format_bmp var)
 {
-	long offset;
 	int err;
 	var->file_offset = sizeof(bmp_file_header);
+	err = dataRead(var, sizeof(bmp_info_header), var->PT_infoHeader);
 	if (err)
 	{
 		printf("ERROR : get info header failed!\n");
 		return -1;
 	}
-	dataRead(var, sizeof(bmp_info_header), var->PT_infoHeader);
 	return 0;
 }
 
@@ -102,32 +107,76 @@ static int bmp_bpp24_get_RGBdata(p_format_bmp var, p_picture_info info, unsigned
 	return 0;
 }
 
-static int bmp_get_RGBdata(p_format_bmp var, unsigned int *data_RGB)
+static int bmp_get_RGBdata(void *format_var, p_picture_info info, unsigned int *data_RGB)
 {
-	if(var->bmp_fp== NULL) return -1;
-	long fp_offset;
 	int err;
-	switch (PT_infoHeader->biBitCount)
+	p_format_bmp var;
+	var = (p_format_bmp)format_var;
+	if(var->bmp_fp== NULL) return -1;
+	switch (var->PT_infoHeader->BitCount)
 	{
 		//case 1:			break;
 		//case 4:			break;
 		//case 8:			break;
 		//case 16:			break;
-		case 24: err = bmp_bpp24_get_RGBdata(var,data_RGB); break;
+		case 24: err = bmp_bpp24_get_RGBdata(var, info,data_RGB); break;
 		//case 32:			break;
 		default: 
 		{
 			err = -1; 
-			printf("ERROR : Don't support %d bpp!\n",var->PT_infoHeader->biBitCount);
+			printf("ERROR : Don't support %d bpp!\n",var->PT_infoHeader->BitCount);
 			break;
 		}
 	}
 	return err;
 }
 
-static int bmp_open(p_format_bmp var, char *filename, char *mode)
+static int bmp_close(void *format_var)
+{	
+	int err;
+	p_format_bmp var;
+	var = (p_format_bmp)format_var;
+	err = munmap(var->memMap_bmp,var->mmapSize);
+	if(err)
+	{
+		printf("ERROR : mumap failed!\n");
+		return err;
+	}
+	err = fclose(var->bmp_fp);
+	if(err)
+	{
+		printf("ERROR : bmp_close failed!\n");
+		perror("fclose");
+		return err;
+	}
+	free(var->PT_fileHeader);
+	var->PT_fileHeader = NULL;
+	free(var->PT_infoHeader);
+	var->PT_infoHeader = NULL;
+	return 0;
+}
+
+
+static void bmp_release(void *format_var)
 {
 	int err;
+	p_format_bmp var;
+	var = (p_format_bmp)format_var;
+	if(var->memMap_bmp 		!= NULL) 
+	{
+		err = munmap(var->memMap_bmp,var->mmapSize);
+		if(err) printf("ERROR : munmap failed\n");	
+	}
+	if(var->PT_fileHeader 	!= NULL) free(var->PT_fileHeader);
+	if(var->PT_infoHeader 	!= NULL) free(var->PT_infoHeader);
+	if(var->bmp_fp	  		!= NULL) bmp_close(format_var);
+}
+
+static int bmp_open(void *format_var, char *filename, char *mode)
+{
+	int err;
+	p_format_bmp var;
+	var = (p_format_bmp)format_var;
 	var->bmp_fp= fopen(filename,mode);
 	if(var->bmp_fp== NULL)
 	{
@@ -143,57 +192,45 @@ static int bmp_open(p_format_bmp var, char *filename, char *mode)
 	return 0;
 }
 
-static void bmp_close(p_format_bmp var)
-{	
-	int err;
-	err = fclose(var->bmp_fp);
-	if(err)
-	{
-		printf("ERROR : bmp_close failed!\n");
-		return -1;
-	}
-	return 0;
-}
-
-static void bmp_release(p_format_bmp var)
+static int bmp_init(void *format_var)
 {
-	if(var->memMap_bmp 		!= NULL) munmap(var->memMap_bmp);
-	if(var->PT_fileHeader 	!= NULL) free(var->PT_fileHeader);
-	if(var->PT_infoHeader 	!= NULL) free(var->PT_infoHeader);
-	if(var->bmp_fp	  		!= NULL) bmp_fclose(var->bmp_fp);
-}
-
-static int bmp_init(p_format_bmp var)
-{
-    int err;
+	p_format_bmp var;
+	var = (p_format_bmp)format_var;
 	var->bmp_fp			= NULL;
 	var->memMap_bmp 	= NULL;
-	var->PT_fileHeader 	= NULL;
-	var->PT_infoHeader 	= NULL;
 	var->file_offset	= 0;
 	var->mmapSize		= 0;
-
 	var->PT_fileHeader = malloc(sizeof(bmp_file_header));
 	if (var->PT_fileHeader == NULL)
 	{
+		printf("ERROR : PT_fileHeader malloc failed!\n");
 		bmp_release(var);
 		return -1;
 	}
 	var->PT_infoHeader = malloc(sizeof(bmp_info_header));
 	if (var->PT_infoHeader == NULL)
 	{
+		printf("ERROR : PT_infoHeader malloc failed!\n");
 		bmp_release(var);
 		return -1;
 	}
 	return 0;
 }
 
-static void bmp_get_info(p_format_bmp var,p_picture_info info)
+static int bmp_get_info(void *format_var,p_picture_info info)
 {
-	info->resX 		= var->PT_infoHeader->biWidth;
-	info->resY 		= var->PT_infoHeader->biHeight;
+	int err;
+	p_format_bmp var;
+	var = (p_format_bmp)format_var;
+	err = bmp_get_fileHeader(var);
+	if(err) return -1;
+	err = bmp_get_infoHeader(var);
+	if(err) return -1;
+	info->resX 		= var->PT_infoHeader->Width;
+	info->resY 		= var->PT_infoHeader->Height;
 	info->data_len 	= info->resX * info->resY;
-	info->bpp		= var->PT_infoHeader->biBitCount;
+	info->bpp		= var->PT_infoHeader->BitCount;
+	return 0;
 }
 
 

@@ -1,6 +1,9 @@
-#ifndef __MODULE_PICTUREFORMAT_ZOOM_H__
-#define __MODULE_PICTUREFORMAT_ZOOM_H__
+#ifndef __MODULE_PICTURE_ZOOM_H__
+#define __MODULE_PICTURE_ZOOM_H__
 
-int zoom_mode_set(unsigned int mode,int (*zoom)(p_picture_info, p_picture_info, int*, int*));
+#include <math.h>
+
+typedef int (*PF_zoom_function)(p_picture_info, p_picture_info,unsigned int*,unsigned int*);
+int zoom_mode_set(unsigned int mode,PF_zoom_function zoom);
 
 #endif
