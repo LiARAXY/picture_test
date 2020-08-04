@@ -189,7 +189,7 @@ int picture_module_init(p_picture_var var)
 
 void picture_module_remove(void)
 {
-    picture_plugin_deselect();
+    if(plugin_selected != NULL) picture_plugin_deselect();
     picture_plugins_unregister();
     picture_list_destory();
 }
@@ -261,12 +261,12 @@ int picture_display(unsigned int x, unsigned int y, unsigned int *rgb_data, p_pi
     {
         put_pixel(m,n,rgb_data[i]);
         m++;
-        if( (m - x > info->resX) || (m > border_x) )
+        if( (m - x > (info->resX - 1)) || (m > border_x) )
         {
             m = x;
             n++;
         }
-        if ( (n - y > info->resY) || (n > border_y) ) break;
+        if ( (n - y > (info->resY - 1)) || (n > border_y) ) break;
     }
     return 0;
 }

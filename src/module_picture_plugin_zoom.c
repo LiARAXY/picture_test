@@ -81,7 +81,6 @@ static int zoom_mode_1(p_picture_info info_src,p_picture_info info_dst, unsigned
 
 int zoom_mode_set(unsigned int mode,PF_zoom_function zoom)
 {
-    int ret;
     switch (mode)
     {
         case 0: zoom = zoom_mode_0; break;
@@ -89,7 +88,7 @@ int zoom_mode_set(unsigned int mode,PF_zoom_function zoom)
         default:
         {
             printf("ERROR : don't surpport this zoom mode!\n");
-            ret = -1;
+            return -1;
             break;
         }
     }

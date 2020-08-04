@@ -12,9 +12,17 @@ typedef struct __bmp_file_header
 {
     unsigned short  Type;             /* 表明它是BMP格式的文件，内容固定为0x42,0x4D，即ASCII字符中的“B”“M” */
     unsigned int    Size;             /* BMP文件的大小，单位为字节 */
-    unsigned short  Reserved[2];      /* 保留 值为0 */
+    unsigned char   Reserved[4];      /* 保留 值为0 */
     unsigned int    OffBits;          /* 位图文件头+位图信息头+调色板 */
 }bmp_file_header,*p_bmp_file_header;
+
+typedef struct __pixel_color
+{
+    char blue;
+    char green;
+    char red;
+}pixel_color,*p_pixel_color;
+
 
 typedef struct __bmp_info_header
 {

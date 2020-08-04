@@ -146,6 +146,7 @@ int display_module_init(void)
 
 void display_module_remove(void)
 {
+    if(plugin_selected != NULL) display_plugin_deselect();
     display_plugins_unregister();
     display_list_destory();
 }

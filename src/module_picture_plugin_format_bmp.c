@@ -29,13 +29,10 @@ static int mmapFile(void *format_var)
 	}
 }
 
-static int dataRead(void *format_var, unsigned int len,void *data)
+static int dataRead(p_format_bmp var, unsigned int len,void *data)
 {
 	char *tmp,*target,*start;
 	unsigned int i;
-	p_format_bmp var;
-	var = (p_format_bmp)format_var;
-
 	tmp = malloc(len);
 	if (tmp == NULL) return -1;
 	memset(tmp, 0, len);
@@ -44,7 +41,7 @@ static int dataRead(void *format_var, unsigned int len,void *data)
 	memcpy(tmp,start,len);
 	for(i = 0; i < len; i++)
 	{
-		target[(len-1) - i] = tmp[i];
+		target[i] = tmp[i];
 	}
 	var->file_offset += len;
 	free(tmp);
@@ -93,16 +90,33 @@ static int bmp_get_infoHeader(p_format_bmp var)
 	return 0;
 }
 
+static unsigned int bmp_bpp24_get_pixel(p_format_bmp var)
+{
+	unsigned int ret;
+	int err;
+	pixel_color tmp;
+	err = dataRead(var, sizeof(pixel_color), &tmp);	
+	if(err) return 0xff000000;
+	ret = (tmp.red<<(8*2)) + (tmp.green<<8) + tmp.blue;
+	return ret;
+}
+
+
 static int bmp_bpp24_get_RGBdata(p_format_bmp var, p_picture_info info, unsigned int *data_RGB)
 {
-	unsigned int i,j;
+	unsigned int i,j,pos,tmp;
 	var->file_offset = sizeof(bmp_file_header) + sizeof(bmp_info_header);
+	printf("file offset = %d",var->file_offset);
 	for ( i = 0; i < info->resY ; i++)
 	{
-		for ( j = 0; j < info->resX ; j++)
+		for ( j = 0; j < info->resY ; j++)
 		{
-			dataRead(var, 3, &data_RGB[j + (i * (info->resX))]);
+			pos = (info->resY - i -1)*(info->resX) + j ;
+			tmp = bmp_bpp24_get_pixel(var);
+			if(tmp <0x1000000) data_RGB[pos] = tmp;
+			else return -1;
 		}
+		var->file_offset += 2;
 	}
 	return 0;
 }

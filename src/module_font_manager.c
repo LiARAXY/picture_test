@@ -152,6 +152,7 @@ int font_module_init(void)
 
 void font_module_remove(void)
 {
+    if(plugin_selected != NULL) font_plugin_deselect();
     font_plugins_unregister();
     font_list_destory();
 }
