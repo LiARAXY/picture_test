@@ -8,10 +8,7 @@ static int mmapFile(void *format_var)
 {
 	p_format_bmp var;
 	var = (p_format_bmp)format_var;
-	if (var->bmp_fp == NULL)
-	{
-		return -1;
-	}
+	if (var->bmp_fp == NULL) return -1;
 	int fd;
 	struct stat file_status;
 	fd = fileno(var->bmp_fp);
@@ -50,18 +47,22 @@ static int dataRead(p_format_bmp var, unsigned int len,void *data)
 
 static int isBMP(void *format_var)
 {
-	char tmp[2];
+	char *tmp;
 	p_format_bmp var;
+	int err;
 	var = (p_format_bmp)format_var;
-	fread(tmp,1,2,var->bmp_fp);
-	fclose(var->bmp_fp);
+	tmp = malloc(2);
+	err = dataRead(var,2,tmp);
+	if(err) return -1;
 	/*          B                   M                 */
-	if( (tmp[0] == 0x42) && (tmp[1] == 0x4d) ) return 0;
-	else 
+	if( !((tmp[0] == 0x42) && (tmp[1] == 0x4d)) )
 	{
 		printf("ERROR : It is not bmp file!\n");
+		free(tmp);
 		return -1;
-	}	
+	}
+	free(tmp);
+	return 0;
 }
 
 static int bmp_get_fileHeader(p_format_bmp var)
@@ -106,7 +107,7 @@ static int bmp_bpp24_get_RGBdata(p_format_bmp var, p_picture_info info, unsigned
 {
 	unsigned int i,j,pos,tmp;
 	var->file_offset = sizeof(bmp_file_header) + sizeof(bmp_info_header);
-	printf("file offset = %d",var->file_offset);
+	printf("file offset = %d\n",var->file_offset);
 	for ( i = 0; i < info->resY ; i++)
 	{
 		for ( j = 0; j < info->resY ; j++)
@@ -147,43 +148,35 @@ static int bmp_get_RGBdata(void *format_var, p_picture_info info, unsigned int *
 
 static int bmp_close(void *format_var)
 {	
+	printf("bmp_close\n");
 	int err;
 	p_format_bmp var;
 	var = (p_format_bmp)format_var;
-	err = munmap(var->memMap_bmp,var->mmapSize);
+	printf("var addr = %d",(unsigned int)var);
+	if(var->memMap_bmp != NULL) err = munmap(var->memMap_bmp,var->mmapSize);
 	if(err)
 	{
-		printf("ERROR : mumap failed!\n");
+		printf("ERROR : munmap failed!\n");
 		return err;
 	}
-	err = fclose(var->bmp_fp);
-	if(err)
-	{
-		printf("ERROR : bmp_close failed!\n");
-		perror("fclose");
-		return err;
-	}
-	free(var->PT_fileHeader);
-	var->PT_fileHeader = NULL;
-	free(var->PT_infoHeader);
-	var->PT_infoHeader = NULL;
+	var->mmapSize = 0;
+	var->bmp_fp = NULL;
+	if(var->PT_fileHeader 	!= NULL) free(var->PT_fileHeader);
+	if(var->PT_infoHeader 	!= NULL) free(var->PT_infoHeader);
 	return 0;
 }
 
 
 static void bmp_release(void *format_var)
 {
-	int err;
 	p_format_bmp var;
 	var = (p_format_bmp)format_var;
-	if(var->memMap_bmp 		!= NULL) 
-	{
-		err = munmap(var->memMap_bmp,var->mmapSize);
-		if(err) printf("ERROR : munmap failed\n");	
-	}
-	if(var->PT_fileHeader 	!= NULL) free(var->PT_fileHeader);
-	if(var->PT_infoHeader 	!= NULL) free(var->PT_infoHeader);
-	if(var->bmp_fp	  		!= NULL) bmp_close(format_var);
+	if(var->bmp_fp != NULL) bmp_close(format_var);
+	if(var->memMap_bmp != NULL) var->memMap_bmp = NULL;
+	if(var->PT_fileHeader != NULL) var->PT_fileHeader = NULL;
+	if(var->PT_infoHeader != NULL) var->PT_infoHeader = NULL;
+	if(var->file_offset	!= 0)	var->file_offset = 0;
+	if(var->mmapSize	!= 0)	var->mmapSize	 = 0;
 }
 
 static int bmp_open(void *format_var, char *filename, char *mode)
@@ -203,17 +196,7 @@ static int bmp_open(void *format_var, char *filename, char *mode)
 		bmp_release(var);
 		return -1;
 	}
-	return 0;
-}
-
-static int bmp_init(void *format_var)
-{
-	p_format_bmp var;
-	var = (p_format_bmp)format_var;
-	var->bmp_fp			= NULL;
-	var->memMap_bmp 	= NULL;
-	var->file_offset	= 0;
-	var->mmapSize		= 0;
+	fclose(var->bmp_fp);
 	var->PT_fileHeader = malloc(sizeof(bmp_file_header));
 	if (var->PT_fileHeader == NULL)
 	{
@@ -228,6 +211,19 @@ static int bmp_init(void *format_var)
 		bmp_release(var);
 		return -1;
 	}
+	return 0;
+}
+
+static int bmp_init(void *format_var)
+{
+	p_format_bmp var;
+	var = (p_format_bmp)format_var;
+	var->PT_fileHeader	= NULL;
+    var->PT_infoHeader	= NULL;
+	var->bmp_fp			= NULL;
+	var->memMap_bmp 	= NULL;
+	var->file_offset	= 0;
+	var->mmapSize		= 0;
 	return 0;
 }
 

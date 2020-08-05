@@ -26,6 +26,7 @@
 
 #define TESTFILE_FONT	"./msyh.ttc"
 #define TESTFILE_TEXT 	"./test.dat"
+#define TEST_FONTSIZE 	20
 #define TESTFILE_BMP 	"./test.bmp"
 #define TESTFILE_JPEG 	"./test.jpeg"
 #define TESTFILE_PNG 	"./test.png"
@@ -104,6 +105,7 @@ int picture_test(void)
 	int ret,run,cmd_code;
 	picture_info info;
 	run = 1;
+	void *PT_format;
 	while (run)	
 	{	
 		cmd  = malloc(BUF_SIZE);
@@ -133,98 +135,79 @@ int picture_test(void)
 			{
 				printf("EXIT PICTURE TEST\n");
 				run = 0;
+				printf("\nPT_format = %d\n",(unsigned int)PT_format);
+				picture_close(PT_format);
+				picture_plugin_release(PT_format);
 				break;
 			}
 			case TEST_BMP:
 			{
 				display_fill(0);
-				p_format_bmp PT_test;
+				format_bmp PT_test;
 				printf("BMP TEST\n");
-				PT_test = malloc(sizeof(format_bmp));
-				putchar('0');
-				if(PT_test == NULL) return -1;
 				ret = picture_plugin_format_select("BMP");
-				putchar('1');
 				if(ret) return -1;
-				ret = picture_plugin_init(PT_test);
-				putchar('2');
+				ret = picture_plugin_init(&PT_test);
 				if(ret) return -1;
-				ret = picture_open(PT_test, TESTFILE_BMP,"rb");
-				putchar('3');
+				ret = picture_open(&PT_test, TESTFILE_BMP,"rb");
 				if(ret) return -1;
-				ret = picture_formatCorrect(PT_test);
-				putchar('4');
+				ret = picture_formatCorrect(&PT_test);
 				if(ret) return -1;
-				ret = picture_getInfo(PT_test,&info);
-				putchar('5');
+				ret = picture_getInfo(&PT_test,&info);
 				if(ret) return -1;
 				rgb_data = malloc(sizeof(unsigned int)*info.data_len);
 				if(rgb_data == NULL) return -1;
-				picture_decode(PT_test,&info,rgb_data);
+				picture_decode(&PT_test,&info,rgb_data);
 				picture_display(10,10,rgb_data,&info);
 				free(rgb_data);
-				free(PT_test);
+				printf("\n&PT_test = %d\n",(unsigned int)&PT_test);
+				PT_format = &PT_test;
 				break;
 			}  
 			case TEST_JPEG:
 			{
 				display_fill(0);
-				p_format_jpeg PT_test;
+				format_jpeg PT_test;
 				printf("JPEG TEST\n");
-				PT_test = malloc(sizeof(format_jpeg));
-				if(PT_test == NULL) return -1;
-				putchar('0');
 				ret = picture_plugin_format_select("JPEG");
-				putchar('1');
 				if(ret) return -1;
-				ret = picture_plugin_init(PT_test);
-				putchar('2');
+				ret = picture_plugin_init(&PT_test);
 				if(ret) return -1;
-				ret = picture_open(PT_test, TESTFILE_JPEG,"rb");
-				putchar('3');
+				ret = picture_open(&PT_test, TESTFILE_JPEG,"rb");
 				if(ret) return -1;
-				ret = picture_formatCorrect(PT_test);
-				putchar('4');
+				ret = picture_formatCorrect(&PT_test);
 				if(ret) return -1;
-				ret = picture_getInfo(PT_test,&info);
-				putchar('5');
+				ret = picture_getInfo(&PT_test,&info);
 				if(ret) return -1;
 				rgb_data =  malloc(sizeof(unsigned int)*info.data_len);
 				if(rgb_data == NULL) return -1;
-				picture_decode(PT_test,&info,rgb_data);
+				picture_decode(&PT_test,&info,rgb_data);
 				picture_display(10,10,rgb_data,&info);
 				free(rgb_data);
-				free(PT_test);
+				PT_format = &PT_test;
 				break;
 			}
 			case TEST_PNG:
 			{
 				display_fill(0);
-				p_format_png PT_test;
+				format_png PT_test;
 				printf("PNG TEST\n");
-				PT_test = malloc(sizeof(format_png));
-				if(PT_test == NULL) return -1;
 				ret = picture_plugin_format_select("PNG");
-				putchar('1');
 				if(ret) return -1;
-				ret = picture_plugin_init(PT_test);
-				putchar('2');
+				ret = picture_plugin_init(&PT_test);
 				if(ret) return -1;
-				ret = picture_open(PT_test, TESTFILE_PNG,"rb");
-				putchar('3');
+				ret = picture_open(&PT_test, TESTFILE_PNG,"rb");
 				if(ret) return -1;
-				ret = picture_formatCorrect(PT_test);
-				putchar('4');
+				ret = picture_formatCorrect(&PT_test);
 				if(ret) return -1;
-				ret = picture_getInfo(PT_test,&info);
-				putchar('5');
+				ret = picture_getInfo(&PT_test,&info);
 				if(ret) return -1;
 				rgb_data = malloc(sizeof(unsigned int)*info.data_len);
 				if(rgb_data == NULL) return -1;
-				picture_decode(PT_test,&info,rgb_data);
+				picture_decode(&PT_test,&info,rgb_data);
 				picture_display(10,10,rgb_data,&info);
 				free(rgb_data);
-				free(PT_test);
+				PT_format = &PT_test;
 				break;
 			}
 			default: return -1;
@@ -298,10 +281,10 @@ int test(void)
 void process_main(void)
 {
 	char *cmd;
-	int flag,cmd_code,err;
+	int run,cmd_code,err;
 	err = 0;
-	flag = 1;
-	while(flag)
+	run = 1;
+	while(run)
 	{	
 		cmd  = malloc(BUF_SIZE);
 		memset(cmd,	 0, BUF_SIZE);
@@ -324,19 +307,20 @@ void process_main(void)
 			case CMD_EXIT:
 			{
 				printf("EXIT\n");
-				flag = 0;
+				run = 0;
 				break;
 			}  
 			case CMD_TEST:
 			{
 				err = test();
-				if(err) flag = 0;
+				if(err) run = 0;
+				
 				break;
 			}
 			default:
 			{
 				printf("ERROR : cmd is error!\n");
-				flag = 0;
+				run = 0;
 				break;
 			}
 		}
@@ -345,11 +329,11 @@ void process_main(void)
 
 int main (int argc,char **argv)
 {
-    if (argc != 2)
+/*     if (argc != 2)
     {
         printf("Usage : %s <font>\n",argv[0]);
         return -1;
-    }
+    } */
 	display_var parmas;
 	font_var font_setting;
 	picture_var picture_setting;
@@ -377,10 +361,10 @@ int main (int argc,char **argv)
 	display_get_var(&parmas);
 
 	/* font module初始化 传入画点函数以及lcd的参数*/
-	printf("Please setup font size:");
-	scanf("%d",&font_size);
-
-	font_setting.filename = argv[1];
+	/* printf("Please setup font size:");
+	scanf("%d",&font_size); */
+	font_size = TEST_FONTSIZE;
+	font_setting.filename = TESTFILE_FONT;
 	font_setting.fontsize_width	= font_size;
 	font_setting.fontsize_height = font_size;
 	font_setting.border_x = parmas.res_x;

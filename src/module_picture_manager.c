@@ -2,7 +2,7 @@
 #include "module_picture_plugins.h"
 
 static p_picture_linklist_node picture_linklist_head,picture_linklist_tail;
-static p_picture_format_ops plugin_selected;
+static p_picture_format_ops format_selected;
 
 static void (*put_pixel)(int,int,unsigned int);
 static PF_zoom_function zoom_func;
@@ -45,26 +45,23 @@ static void picture_node_modify(p_picture_linklist_node node,p_picture_format_op
 
 static int picture_node_add(p_picture_format_ops data)
 {
-    p_picture_linklist_node tmp;
     if((picture_linklist_tail == picture_linklist_head) && (picture_linklist_head->operation == NULL))
     {
         picture_node_modify(picture_linklist_head, data);
     }
     else
     {
+        p_picture_linklist_node tmp;
         tmp = malloc(sizeof(picture_linklist_node));
         if(tmp == NULL)
         {
             printf("picture_linklist node add malloc failed!\n");
             return -1;
         }
-        else
-        {
-            picture_node_modify(tmp, data);
-            tmp->prev = picture_linklist_tail;
-            tmp->next = NULL;
-            picture_linklist_tail = tmp;
-        }
+        picture_linklist_tail->next = tmp;
+        tmp->prev = picture_linklist_tail;
+        picture_linklist_tail = tmp;
+        picture_node_modify(tmp,data);
     }
     return 0;
 }
@@ -123,9 +120,13 @@ static int picture_plugins_register(void)
 
 static void picture_plugins_unregister(void)
 {
+    printf("%s\n",__FUNCTION__);
     picture_plugin_unregister_format_bmp();
+    printf("%s\n",__FUNCTION__);
     picture_plugin_unregister_format_jpeg();
+    printf("%s\n",__FUNCTION__);
     picture_plugin_unregister_format_png();
+    printf("%s\n",__FUNCTION__);
 }
 
 
@@ -151,20 +152,22 @@ int picture_plugin_format_select(char *format_name)
     }
     else
     {
-        plugin_selected = tmp->operation;
+        format_selected = tmp->operation;
+        printf("\npicture_plugin_select = %d\n",(unsigned int)format_selected);
         return 0;
     }
 }
 
 void picture_plugin_deselect(void)
 {
-    plugin_selected = NULL;
+    printf("%s\n",__FUNCTION__);
+    format_selected = NULL;
 }
 
 int picture_plugin_init(void *format_var)
 {
     int ret;
-    ret = plugin_selected->init(format_var);
+    ret = format_selected->init(format_var);
     return ret;
 }
 
@@ -189,7 +192,11 @@ int picture_module_init(p_picture_var var)
 
 void picture_module_remove(void)
 {
-    if(plugin_selected != NULL) picture_plugin_deselect();
+    printf("%s\n",__FUNCTION__);
+    if(format_selected != NULL) 
+    {
+        picture_plugin_deselect();
+    }
     picture_plugins_unregister();
     picture_list_destory();
 }
@@ -197,41 +204,41 @@ void picture_module_remove(void)
 int picture_formatCorrect(void *format_var)
 {
     int ret;
-    ret = plugin_selected->formatCorrect(format_var);
+    ret = format_selected->formatCorrect(format_var);
     return ret;
 }
 
 int picture_getInfo(void *format_var, p_picture_info info)
 {
     int ret;
-    ret = plugin_selected->getInfo(format_var,info);
+    ret = format_selected->getInfo(format_var,info);
     return ret;
 }
 
 int picture_decode(void *format_var, p_picture_info info,unsigned int *data)
 {
     int ret;
-    ret = plugin_selected->getRGBdata(format_var,info,data);
+    ret = format_selected->getRGBdata(format_var,info,data);
     return ret;
 }
 
 int picture_open(void *format_var, char *filename, char *open_mode)
 {
     int ret;
-    ret =  plugin_selected->open(format_var, filename,open_mode);
+    ret =  format_selected->open(format_var, filename,open_mode);
     return ret;
 }
 
 int picture_close(void *format_var)
 {
     int ret;
-    ret = plugin_selected->close(format_var);
+    ret = format_selected->close(format_var);
     return ret;
 }
 
 void picture_plugin_release(void *format_var)
 {
-    plugin_selected->release(format_var);
+    format_selected->release(format_var);
 }
 
 int picture_zoom(p_picture_info info_src,p_picture_info info_dst, unsigned int *data_src, unsigned int *data_dst)

@@ -42,26 +42,23 @@ static void font_node_modify(p_font_linklist_node node,p_font_ops data)
 
 static int font_node_add(p_font_ops data)
 {
-    p_font_linklist_node tmp;
     if((font_linklist_tail == font_linklist_head) && (font_linklist_head->operation == NULL))
     {
         font_node_modify(font_linklist_head, data);
     }
     else
     {
+        p_font_linklist_node tmp;
         tmp = malloc(sizeof(font_linklist_node));
         if(tmp == NULL)
         {
             printf("font_linklist node add malloc failed!\n");
             return -1;
         }
-        else
-        {
-            font_node_modify(tmp, data);
-            tmp->prev = font_linklist_tail;
-            tmp->next = NULL;
-            font_linklist_tail = tmp;
-        }
+        font_linklist_tail->next = tmp;
+        tmp->prev = font_linklist_tail;
+        font_linklist_tail = tmp;
+        font_node_modify(tmp,data);
     }
     return 0;
 }

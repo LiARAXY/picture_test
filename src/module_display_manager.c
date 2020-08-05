@@ -39,23 +39,23 @@ static void display_node_modify(p_display_linklist_node node,p_display_ops data)
 
 static int display_node_add(p_display_ops data)
 {
-    p_display_linklist_node tmp;
     if((display_linklist_tail == display_linklist_head) && (display_linklist_head->operation == NULL))
     {
         display_node_modify(display_linklist_head, data);
     }
     else
     {
+        p_display_linklist_node tmp;
         tmp = malloc(sizeof(display_linklist_node));
         if(tmp == NULL)
         {
             printf("display_linklist node add malloc failed!\n");
             return -1;
         }
-        display_node_modify(tmp, data);
+        display_linklist_tail->next = tmp;
         tmp->prev = display_linklist_tail;
-        tmp->next = NULL;
         display_linklist_tail = tmp;
+        display_node_modify(tmp,data);
     }
     return 0;
 }
