@@ -21,6 +21,7 @@ static int isPNG(void *format_var)
 		printf("ERROR : It is not png file!\n");
 		return -1;
 	}
+	fseek(var->png_fp, 0, SEEK_SET);
 	return 0;
 }
 
@@ -34,7 +35,8 @@ static int png_open(void *format_var, char *filename,char *mode)
         printf("ERROR : can't open %s\n", filename);  
         return -1;  
     }
-	else return 0;
+	png_init_io(var->PT_png,var->png_fp);
+	return 0;
 }
 
 static int png_close(void *format_var)
@@ -49,6 +51,7 @@ static int png_close(void *format_var)
 		perror("fclose");
 		return err;
 	}
+	var->png_fp = NULL;
 	return 0;
 }
 
@@ -56,8 +59,17 @@ static void png_release(void *format_var)
 {
 	p_format_png var;
 	var = (p_format_png)format_var;
-	if(var->png_fp != NULL) png_close(format_var);
-	png_destroy_read_struct(&var->PT_png, &var->PT_pngInfo, 0);
+	if(var->png_fp != NULL) 
+	{
+		png_close(format_var);
+		var->png_fp = NULL;
+	}
+	if((var->PT_png != NULL) && (var->PT_pngInfo != NULL)) 
+	{
+		png_destroy_read_struct(&var->PT_png, &var->PT_pngInfo, 0);
+		var->PT_png = NULL;
+		var->PT_pngInfo = NULL;
+	}
 }
 
 static int png_init(void *format_var)
@@ -77,14 +89,14 @@ static int png_init(void *format_var)
 		printf("ERROR : png_create_read_struct failed!\n");
 		return -1;
 	}
-	setjmp( png_jmpbuf(var->PT_png) );
-	fseek(var->png_fp, 0, SEEK_SET);
 	var->PT_pngInfo = png_create_info_struct(var->PT_png);
 	if (var->PT_pngInfo == NULL)
 	{
 		printf("ERROR : png_create_info_struct failed!\n");
 		return -1;
 	}
+	setjmp( png_jmpbuf(var->PT_png) );
+	
 	return 0;
 }
 
@@ -103,9 +115,9 @@ static int png_get_info(void *format_var, p_picture_info info)
 
 static int png_get_RGBdata(void *format_var,p_picture_info info, unsigned int *data)
 {
-	int i,j,k,iPos,rawDataSize;
+	int i,j,k,pos,rawDataSize;
 	png_bytepp tmp;
-	iPos = 0;
+	pos = 0;
 	p_format_png var;
 	var = (p_format_png)format_var;
 	/* 将info_ptr中的图像数据读取出来 */
@@ -117,8 +129,7 @@ static int png_get_RGBdata(void *format_var,p_picture_info info, unsigned int *d
 		if (NULL == var->rawData) 
 		{
 			printf("malloc rgba faile ...\n");
-			png_destroy_read_struct(&var->PT_png, &var->PT_pngInfo, 0);
-			png_close(format_var);
+			png_release(format_var);
 			return -1;
 		}
 		/* 从tmp里读出实际的RGBA数据出来 
@@ -127,12 +138,12 @@ static int png_get_RGBdata(void *format_var,p_picture_info info, unsigned int *d
 		{ 
 			for (j = 0; j < info->resX * 4; j += 4) 
 			{
-				var->rawData[iPos++] = tmp[i][j + 3];	/* R */
-				var->rawData[iPos++] = tmp[i][j + 2];	/* G */
-				var->rawData[iPos++] = tmp[i][j + 1];	/* B */
-				var->rawData[iPos++] = tmp[i][j + 0];	/* A */
+				var->rawData[pos++] = tmp[i][j + 3];	/* B */
+				var->rawData[pos++] = tmp[i][j + 2];	/* G */
+				var->rawData[pos++] = tmp[i][j + 1];	/* R */
+				var->rawData[pos++] = tmp[i][j + 0];	/* A */
 				/* 将得到的RGBA转换为RGB888格式 */
-				data[k] = (var->rawData[iPos - 3]<<(8*2)) + (var->rawData[iPos - 2]<<(8*1)) + (var->rawData[iPos - 1]<<(8*0));
+				data[k] = (var->rawData[pos-1]<<(8*2)) + (var->rawData[pos - 2]<<(8*1)) + (var->rawData[pos - 3]<<(8*0));
 				k++;
 			}
 		}
@@ -144,8 +155,7 @@ static int png_get_RGBdata(void *format_var,p_picture_info info, unsigned int *d
 		if (NULL == var->rawData) 
 		{
 			printf("malloc rgba faile ...\n");
-			png_destroy_read_struct(&var->PT_png, &var->PT_pngInfo, 0);
-			png_close(format_var);
+			png_release(format_var);
 			return -1;
 		}
 		/* 从tmp里读出实际的RGB数据
@@ -154,10 +164,10 @@ static int png_get_RGBdata(void *format_var,p_picture_info info, unsigned int *d
 		{
 			for (j = 0; j < info->resX*3; j += 3) 
 			{
-				var->rawData[iPos++] = tmp[i][j+2];	/* R */
-				var->rawData[iPos++] = tmp[i][j+1];	/* G */
-				var->rawData[iPos++] = tmp[i][j+0];	/* B */
-				data[k] = (var->rawData[iPos - 2]<<(8*2)) + (var->rawData[iPos - 1]<<(8*1)) + (var->rawData[iPos]<<(8*0));
+				var->rawData[pos++] = tmp[i][j+2];	/* B */
+				var->rawData[pos++] = tmp[i][j+1];	/* G */
+				var->rawData[pos++] = tmp[i][j+0];	/* R */
+				data[k] = (var->rawData[pos]<<(8*2)) + (var->rawData[pos - 1]<<(8*1)) + (var->rawData[pos - 2]<<(8*0));
 				k++;
 			}
 		}

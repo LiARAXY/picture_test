@@ -107,7 +107,6 @@ static int bmp_bpp24_get_RGBdata(p_format_bmp var, p_picture_info info, unsigned
 {
 	unsigned int i,j,pos,tmp;
 	var->file_offset = sizeof(bmp_file_header) + sizeof(bmp_info_header);
-	printf("file offset = %d\n",var->file_offset);
 	for ( i = 0; i < info->resY ; i++)
 	{
 		for ( j = 0; j < info->resY ; j++)
@@ -148,11 +147,9 @@ static int bmp_get_RGBdata(void *format_var, p_picture_info info, unsigned int *
 
 static int bmp_close(void *format_var)
 {	
-	printf("bmp_close\n");
 	int err;
 	p_format_bmp var;
 	var = (p_format_bmp)format_var;
-	printf("var addr = %d",(unsigned int)var);
 	if(var->memMap_bmp != NULL) err = munmap(var->memMap_bmp,var->mmapSize);
 	if(err)
 	{

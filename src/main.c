@@ -42,6 +42,41 @@
 #define TEST_JPEG 	21
 #define TEST_PNG 	22
 
+static int set_blankinterval(int timeval)
+{
+	int fd;
+	char str[20];
+	if ((fd = open("/dev/tty0", O_RDWR)) < 0) 
+	{
+	    perror("open");
+	    return -1;
+	}
+	sprintf(str, "\033[9;%d]", timeval);
+	write(fd, str, strlen(str));
+	close(fd);
+	return 0;
+}
+
+static int set_cursor(int val)
+{
+	int fd;
+	char str[20];
+	switch (val)
+	{
+		case 0:		sprintf(str,"\033[?25l");	break;
+		case 1:		sprintf(str,"\033[?25h");	break;
+		default:	return -1;
+	}
+	if ((fd = open("/dev/tty0", O_RDWR)) < 0) 
+	{
+	    perror("open");
+	    return -1;
+	}
+	write(fd, str, strlen(str));
+	close(fd);
+	return 0;
+}
+
 int font_test(void)
 {
 	char *buf;
@@ -102,8 +137,10 @@ int picture_test(void)
 {
 	char *cmd;
 	unsigned int *rgb_data;
+	unsigned int *rgb_data_zoom;
 	int ret,run,cmd_code;
-	picture_info info;
+	float zoom_times;
+	picture_info info,info_zoom;
 	run = 1;
 	void *PT_format;
 	while (run)	
@@ -158,9 +195,22 @@ int picture_test(void)
 				rgb_data = malloc(sizeof(unsigned int)*info.data_len);
 				if(rgb_data == NULL) return -1;
 				picture_decode(&PT_test,&info,rgb_data);
-				picture_display(10,10,rgb_data,&info);
+				printf("plaese input zoom times:");
+				scanf("%f",&zoom_times);
+				printf("zoom_times = %f\n",zoom_times);
+				info_zoom.bpp 		= info.bpp;
+				info_zoom.resX 		= (unsigned int)(zoom_times*info.resX);
+				info_zoom.resY 		= (unsigned int)(zoom_times*info.resY);
+				info_zoom.data_len 	= info_zoom.resX*info_zoom.resY;
+				rgb_data_zoom = malloc(sizeof(unsigned int)*info_zoom.data_len);
+				printf("info_zoom.bpp 	 	= %d\n",info_zoom.bpp 	);
+				printf("info_zoom.resX 	 	= %d\n",info_zoom.resX 	);
+				printf("info_zoom.resY 	 	= %d\n",info_zoom.resY 	);
+				printf("info_zoom.data_len 	= %d\n",info_zoom.data_len);
+				picture_zoom(&info,&info_zoom,rgb_data,rgb_data_zoom);
+				picture_display(10,10,rgb_data_zoom,&info_zoom);
 				free(rgb_data);
-				printf("\n&PT_test = %d\n",(unsigned int)&PT_test);
+				free(rgb_data_zoom);
 				PT_format = &PT_test;
 				break;
 			}  
@@ -338,7 +388,19 @@ int main (int argc,char **argv)
 	font_var font_setting;
 	picture_var picture_setting;
 	int err,font_size;
-    
+	/* 设置LCD休眠时间 */
+    err = set_blankinterval(0);
+	if(err) 
+	{
+		printf("set_blankinterval is failed!\n");
+		return err;	
+	}
+	err = set_cursor(0);
+	if(err) 
+	{
+		printf("set_cursor is failed!\n");
+		return err;	
+	}
 	/* LCD module初始化 得到lcd参数以及画点函数 */
 	err = display_module_init();
 	if (err)
@@ -397,7 +459,9 @@ int main (int argc,char **argv)
 	picture_module_init(&picture_setting);
 	/* 主线程 */
 	process_main();
-	
+
+	set_cursor(1);
+	set_blankinterval(10*60);
 	/* 移除各个模块 */
 	picture_module_remove();
 	font_module_remove();

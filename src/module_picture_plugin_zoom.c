@@ -22,9 +22,9 @@ static int zoom_mode_0(p_picture_info info_src,p_picture_info info_dst, unsigned
     y_dst = info_dst->resY;
     m = (double)x_dst/x_src;
     n = (double)y_dst/y_src;
-    for (j = 0; j < y_src; j++)
+    for (j = 0; j < y_dst; j++)
     {
-        for (i = 0; i < x_src; i++)
+        for (i = 0; i < x_dst; i++)
         {
             x_tmp = round(i/m);
             y_tmp = round(j/n);
@@ -47,9 +47,9 @@ static int zoom_mode_1(p_picture_info info_src,p_picture_info info_dst, unsigned
         printf("ERROR : zoom data_src is invalid!\n");
         return -1;
     }
-    double m,n,x_tmp,y_tmp;
+    double m,n,x_tmp,y_tmp,fr1,fr2;
     unsigned int i,j,x_src,y_src,x_dst,y_dst,x1,x2,y1,y2;
-    int f11,f12,f21,f22;
+    double f11,f12,f21,f22;
     x_src = info_src->resX;
     y_src = info_src->resY;
     x_dst = info_dst->resX;
@@ -62,29 +62,28 @@ static int zoom_mode_1(p_picture_info info_src,p_picture_info info_dst, unsigned
         {
             x_tmp = j / m;
             y_tmp = i / n;
-            x1 = (int)(x_tmp - 1);
-            x2 = (int)(x_tmp + 1);
-            y1 = (int)(y_tmp + 1);
-            y2 = (int)(y_tmp - 1);
-            f11 = data_src[ y1*x_src + x1 ];
-            f12 = data_src[ y2*x_src + x1 ];
-            f21 = data_src[ y1*x_src + x2 ];
-            f22 = data_src[ y2*x_src + x2 ];
-            data_dst[j + i*y_dst] = (int)( ((  f11 * ((double)x2 - x_tmp) * ((double)y2 - y_tmp) )  +
-                                            (  f21 * (x_tmp - (double)x1) * ((double)y2 - y_tmp) )  +
-                                            (  f12 * ((double)x2 - x_tmp) * (y_tmp - (double)y1) )  +
-                                            (  f22 * (x_tmp - (double)x1) * (y_tmp - (double)y1) )) / ((x2 - x1) * (y2 - y1)) );
+            x1 = floor(x_tmp);
+            x2 = ceil(x_tmp);
+            y1 = floor(y_tmp);
+            y2 = ceil(y_tmp);
+            f11 = data_src[ y_src*x1 + y1];
+            f12 = data_src[ y_src*x1 + y2];
+            f21 = data_src[ y_src*x2 + y1];
+            f22 = data_src[ y_src*x2 + y2];
+            fr1 = f11*(x2*m - j)/((x2 - x1)*m) + f21*(j - x1*m)/((x2 - x1)*m);
+            fr2 = f12*(x2*m - j)/((x2 - x1)*m) + f22*(j - x1*m)/((x2 - x1)*m);
+            data_dst[j + i*x_dst] = round( ((double)(y2*n - i)/((y2 -y1)*n))*fr1 + ((double)(i - y1*n)/((y2 -y1)*n))*fr2 );
         }
     }
     return 0;
 }
 
-int zoom_mode_set(unsigned int mode,PF_zoom_function zoom)
+int zoom_mode_set(unsigned int mode,PF_zoom_function *zoom)
 {
     switch (mode)
     {
-        case 0: zoom = zoom_mode_0; break;
-        case 1: zoom = zoom_mode_1; break;
+        case 0: *zoom = zoom_mode_0; break;
+        case 1: *zoom = zoom_mode_1; break;
         default:
         {
             printf("ERROR : don't surpport this zoom mode!\n");

@@ -8,12 +8,6 @@ static int isJPEG(void *format_var)
 	int ret;
 	p_format_jpeg var;
 	var = (p_format_jpeg)format_var;
-	jpeg_stdio_src(&var->T_decompress, var->jpeg_fp);
-	ret = fclose(var->jpeg_fp);
-	if (ret)
-	{
-		printf("ERROR : fclose failed!\n");
-	}
 	ret = jpeg_read_header(&var->T_decompress, TRUE);
 	if (ret == JPEG_HEADER_OK) return 0;
 	else 
@@ -33,7 +27,8 @@ static int jpeg_open(void *format_var, char *filename,char *mode)
         printf("ERROR : can't open %s\n", filename);  
         return -1;
     }
-	else return 0;
+	jpeg_stdio_src(&var->T_decompress, var->jpeg_fp);
+	return 0;
 }
 
 static int jpeg_close(void *format_var)
@@ -107,7 +102,7 @@ static int jpeg_get_RGBdata(void *format_var,p_picture_info info, unsigned int *
 		}
 		default: 
 		{
-			printf("ERROR : Don't surpport %d bpp",info->bpp);
+			printf("ERROR : Don't surpport %d bpp\n",info->bpp);
 			break;
 		}
 	}
@@ -121,11 +116,15 @@ static int jpeg_get_info(void *format_var, p_picture_info info)
 {
 	p_format_jpeg var;
 	var = (p_format_jpeg)format_var;
-	jpeg_read_header(&var->T_decompress, TRUE);
-	info->resX 		= var->T_decompress.output_width;
-	info->resY 		= var->T_decompress.output_height;
+	info->resX 		= var->T_decompress.image_width;
+	info->resY 		= var->T_decompress.image_height;
 	info->data_len 	= info->resX * info->resY;
-	info->bpp		= var->T_decompress.output_components*8;	
+	info->bpp		= var->T_decompress.num_components*8;
+	printf("info->resX 		 	= %d\n",info->resX 		);	
+	printf("info->resY 		 	= %d\n",info->resY 		);	
+	printf("info->data_len 	 	= %d\n",info->data_len 	);	
+	printf("info->bpp		 	= %d\n",info->bpp		);	
+	printf("output_components 	= %d\n",var->T_decompress.output_components);	
 	return 0;
 }
 

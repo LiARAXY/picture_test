@@ -120,20 +120,16 @@ static int picture_plugins_register(void)
 
 static void picture_plugins_unregister(void)
 {
-    printf("%s\n",__FUNCTION__);
     picture_plugin_unregister_format_bmp();
-    printf("%s\n",__FUNCTION__);
     picture_plugin_unregister_format_jpeg();
-    printf("%s\n",__FUNCTION__);
     picture_plugin_unregister_format_png();
-    printf("%s\n",__FUNCTION__);
 }
 
 
 static int picture_zoom_mode_set(unsigned int zoom_mode)
 {
     int ret;
-    ret = zoom_mode_set(zoom_mode,zoom_func);
+    ret = zoom_mode_set(zoom_mode,&zoom_func);
     if(ret)
     {
         printf("ERROR : zoom mode set failed!\n");
@@ -160,7 +156,6 @@ int picture_plugin_format_select(char *format_name)
 
 void picture_plugin_deselect(void)
 {
-    printf("%s\n",__FUNCTION__);
     format_selected = NULL;
 }
 
@@ -192,7 +187,6 @@ int picture_module_init(p_picture_var var)
 
 void picture_module_remove(void)
 {
-    printf("%s\n",__FUNCTION__);
     if(format_selected != NULL) 
     {
         picture_plugin_deselect();
