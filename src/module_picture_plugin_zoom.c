@@ -47,34 +47,70 @@ static int zoom_mode_1(p_picture_info info_src,p_picture_info info_dst, unsigned
         printf("ERROR : zoom data_src is invalid!\n");
         return -1;
     }
-    double m,n,x_tmp,y_tmp,f11,f12,f21,f22,tmpVal,help;
-    unsigned int xRes_src,yRes_src,xRes_dst,yRes_dst;
+    double m,n,x_tmp,y_tmp,r,g,b;
+    unsigned int xRes_src,yRes_src,xRes_dst,yRes_dst,cnt;
     int i,j,x1,x2,y1,y2;
+    unsigned int f1r,f2r,f1g,f2g,f1b,f2b,tmpVal;
     xRes_src = info_src->resX;
     yRes_src = info_src->resY;
     xRes_dst = info_dst->resX;
     yRes_dst = info_dst->resY;
     m = (double)xRes_dst/xRes_src;
     n = (double)yRes_dst/yRes_src;
-    for (i = 0; i < yRes_dst; i++)
+    cnt = 0;
+    for (i = 0; i < yRes_src; i++)
     {
+        y_tmp = floor(i*n);
         for (j = 0; j < xRes_dst; j++)
         {
             x_tmp = j / m;
-            y_tmp = i / n;
             x1 = floor(x_tmp);
             x2 = ceil(x_tmp);
-            y1 = ceil(y_tmp);
-            y2 = floor(y_tmp);
-            help = m*n*(x2 - x1)*(y2 - y1);
-            f11 = data_src[ x1 + y1*xRes_src ];
-            f12 = data_src[ x1 + y2*xRes_src ];
-            f21 = data_src[ x2 + y1*xRes_src ];
-            f22 = data_src[ x2 + y2*xRes_src ];
-            tmpVal = ( f11*(j - x1*m)*(i - y1*n) + f12*(j - x1*m)*(y2*n - i) + f21*(x2*m - j)*(i - y1*n) + f22*(x2*m - j)*(y2*n - i) )/help;
-            data_dst[i*xRes_dst + j] = (unsigned int)round(tmpVal);
+            if(x1 == x2) tmpVal = data_src[i + x1*xRes_src];
+            else
+            {
+                f1r = (data_src[i + x1*xRes_src]>>(8*2)) & 0xff;
+                f1g = (data_src[i + x1*xRes_src]>>(8*1)) & 0xff;
+                f1b = (data_src[i + x1*xRes_src]>>(8*0)) & 0xff;
+                f2r = (data_src[i + x2*xRes_src]>>(8*2)) & 0xff;
+                f2g = (data_src[i + x2*xRes_src]>>(8*1)) & 0xff;
+                f2b = (data_src[i + x2*xRes_src]>>(8*0)) & 0xff;
+                r = (f1r*(x_tmp - x1) + f2r*(x2 - x_tmp))/(x2 -x1);
+                g = (f1g*(x_tmp - x1) + f2g*(x2 - x_tmp))/(x2 -x1);
+                b = (f1b*(x_tmp - x1) + f2b*(x2 - x_tmp))/(x2 -x1);
+                tmpVal = ((unsigned int)r<<(8*2)) + ((unsigned int)g<<(8*1)) + (unsigned int)b;
+            }
+            data_dst[j + (int)y_tmp*xRes_dst] = tmpVal;
+            cnt ++;
         }
     }
+    for (i = 0; i < xRes_src; i++)
+    {
+        x_tmp = floor(i*n);
+        for (j = 0; j < yRes_dst; j++)
+        {
+            y_tmp = j / n;
+            y1 = floor(y_tmp);
+            y2 = ceil(y_tmp);
+            if(y1 == y2) tmpVal = data_src[y1 + i*yRes_src];
+            else
+            {
+                f1r = (data_src[y1 + i*yRes_src]>>(8*2)) & 0xff;
+                f1g = (data_src[y1 + i*yRes_src]>>(8*1)) & 0xff;
+                f1b = (data_src[y1 + i*yRes_src]>>(8*0)) & 0xff;
+                f2r = (data_src[y2 + i*yRes_src]>>(8*2)) & 0xff;
+                f2g = (data_src[y2 + i*yRes_src]>>(8*1)) & 0xff;
+                f2b = (data_src[y2 + i*yRes_src]>>(8*0)) & 0xff;
+                r = (f1r*(y_tmp - y1) + f2r*(y2 - y_tmp))/(y2 - y1);
+                g = (f1g*(y_tmp - y1) + f2g*(y2 - y_tmp))/(y2 - y1);
+                b = (f1b*(y_tmp - y1) + f2b*(y2 - y_tmp))/(y2 - y1);
+                tmpVal = ((unsigned int)r<<(8*2)) + ((unsigned int)g<<(8*1)) + (unsigned int)b;
+            }
+            data_dst[j + (int)x_tmp*yRes_dst] = tmpVal;
+            cnt++;
+        }
+    }
+    printf("cnt = %d,data len = %d\n",cnt,info_dst->data_len);
     return 0;
 }
 
