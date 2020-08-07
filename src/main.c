@@ -172,6 +172,7 @@ int picture_test(void)
 			{
 				printf("EXIT PICTURE TEST\n");
 				run = 0;
+				printf("\nPT_format = %d\n",(unsigned int)PT_format);
 				picture_close(PT_format);
 				picture_plugin_release(PT_format);
 				break;
@@ -194,17 +195,23 @@ int picture_test(void)
 				rgb_data = malloc(sizeof(unsigned int)*info.data_len);
 				if(rgb_data == NULL) return -1;
 				picture_decode(&PT_test,&info,rgb_data);
-				printf("plaese input zoom times:");
+				/* printf("plaese input zoom times:");
 				scanf("%f",&zoom_times);
+				printf("zoom_times = %f\n",zoom_times);
 				info_zoom.bpp 		= info.bpp;
 				info_zoom.resX 		= (unsigned int)(zoom_times*info.resX);
 				info_zoom.resY 		= (unsigned int)(zoom_times*info.resY);
 				info_zoom.data_len 	= info_zoom.resX*info_zoom.resY;
 				rgb_data_zoom = malloc(sizeof(unsigned int)*info_zoom.data_len);
-				picture_zoom(&info,&info_zoom,rgb_data,rgb_data_zoom);
-				picture_display(10,10,rgb_data_zoom,&info_zoom);
+				printf("info_zoom.bpp 	 	= %d\n",info_zoom.bpp 	);
+				printf("info_zoom.resX 	 	= %d\n",info_zoom.resX 	);
+				printf("info_zoom.resY 	 	= %d\n",info_zoom.resY 	);
+				printf("info_zoom.data_len 	= %d\n",info_zoom.data_len);
+				picture_zoom(&info,&info_zoom,rgb_data,rgb_data_zoom); 
+				picture_display(10,10,rgb_data_zoom,&info_zoom);*/
+				picture_display(10,10,rgb_data,&info);
 				free(rgb_data);
-				free(rgb_data_zoom);
+				/* free(rgb_data_zoom); */
 				PT_format = &PT_test;
 				break;
 			}  
@@ -449,7 +456,7 @@ int main (int argc,char **argv)
 	picture_setting.border_x = parmas.res_x;
 	picture_setting.border_y = parmas.res_y;
 	picture_setting.draw_dot = display_put_pixel;
-	picture_setting.zoom_mode = 0;
+	picture_setting.zoom_mode = 1;
 	picture_module_init(&picture_setting);
 	/* 主线程 */
 	process_main();

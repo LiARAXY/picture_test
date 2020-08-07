@@ -105,18 +105,21 @@ static unsigned int bmp_bpp24_get_pixel(p_format_bmp var)
 
 static int bmp_bpp24_get_RGBdata(p_format_bmp var, p_picture_info info, unsigned int *data_RGB)
 {
-	unsigned int i,j,pos,tmp;
+	unsigned int i,j,pos,tmp,flg;
+	char test[2];
 	var->file_offset = sizeof(bmp_file_header) + sizeof(bmp_info_header);
+	if(var->mmapSize > (2 + sizeof(bmp_file_header) + sizof(bmp_info_header) + info->data_len*3)) flg = 1;
+	else flg = 0;
 	for ( i = 0; i < info->resY ; i++)
 	{
 		for ( j = 0; j < info->resY ; j++)
 		{
 			pos = (info->resY - i -1)*(info->resX) + j ;
 			tmp = bmp_bpp24_get_pixel(var);
-			if(tmp <0x1000000) data_RGB[pos] = tmp;
+			if(tmp < 0x1000000) data_RGB[pos] = tmp;
 			else return -1;
 		}
-		var->file_offset += 2;
+		if(flg) var->file_offset += 2;
 	}
 	return 0;
 }

@@ -149,6 +149,7 @@ int picture_plugin_format_select(char *format_name)
     else
     {
         format_selected = tmp->operation;
+        printf("\npicture_plugin_select = %d\n",(unsigned int)format_selected);
         return 0;
     }
 }
@@ -243,7 +244,7 @@ int picture_zoom(p_picture_info info_src,p_picture_info info_dst, unsigned int *
 
 int picture_display(unsigned int x, unsigned int y, unsigned int *rgb_data, p_picture_info info)
 {
-    int i;
+    int i,j;
     unsigned int m,n;
     if (x > border_x)
     {
@@ -257,16 +258,15 @@ int picture_display(unsigned int x, unsigned int y, unsigned int *rgb_data, p_pi
     }
     m = x;
     n = y;
-    for(i = 0; i < info->data_len; i++)
+    for(i = 0; i < info->resY; i++)
     {
-        put_pixel(m,n,rgb_data[i]);
-        m++;
-        if( (m - x > (info->resX - 1)) || (m > border_x) )
+        for(j = 0; j < info->resX; j++)
         {
-            m = x;
-            n++;
+            put_pixel(m,n,rgb_data[j + i*info->resX]);
+            m++;
         }
-        if ( (n - y > (info->resY - 1)) || (n > border_y) ) break;
+        m = x;
+        n++;
     }
     return 0;
 }
