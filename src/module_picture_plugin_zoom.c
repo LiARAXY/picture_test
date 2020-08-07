@@ -50,7 +50,7 @@ static int zoom_mode_1(p_picture_info info_src,p_picture_info info_dst, unsigned
     double m,n,x_tmp,y_tmp,r,g,b;
     unsigned int xRes_src,yRes_src,xRes_dst,yRes_dst,cnt;
     int i,j,x1,x2,y1,y2;
-    unsigned int f1r,f2r,f1g,f2g,f1b,f2b,tmpVal;
+    unsigned int f11r,f12r,f21r,f22r,f11g,f12g,f21g,f22g,f11b,f12b,f21b,f22b,tmpVal;
     xRes_src = info_src->resX;
     yRes_src = info_src->resY;
     xRes_dst = info_dst->resX;
@@ -58,56 +58,62 @@ static int zoom_mode_1(p_picture_info info_src,p_picture_info info_dst, unsigned
     m = (double)xRes_dst/xRes_src;
     n = (double)yRes_dst/yRes_src;
     cnt = 0;
-    for (i = 0; i < yRes_src; i++)
+    for (i = 0; i < yRes_dst; i++)
     {
-        y_tmp = floor(i*n);
         for (j = 0; j < xRes_dst; j++)
         {
             x_tmp = j / m;
+            y_tmp = i / n;
             x1 = floor(x_tmp);
             x2 = ceil(x_tmp);
-            if(x1 == x2) tmpVal = data_src[i + x1*xRes_src];
-            else
-            {
-                f1r = (data_src[i + x1*xRes_src]>>(8*2)) & 0xff;
-                f1g = (data_src[i + x1*xRes_src]>>(8*1)) & 0xff;
-                f1b = (data_src[i + x1*xRes_src]>>(8*0)) & 0xff;
-                f2r = (data_src[i + x2*xRes_src]>>(8*2)) & 0xff;
-                f2g = (data_src[i + x2*xRes_src]>>(8*1)) & 0xff;
-                f2b = (data_src[i + x2*xRes_src]>>(8*0)) & 0xff;
-                r = (f1r*(x_tmp - x1) + f2r*(x2 - x_tmp))/(x2 -x1);
-                g = (f1g*(x_tmp - x1) + f2g*(x2 - x_tmp))/(x2 -x1);
-                b = (f1b*(x_tmp - x1) + f2b*(x2 - x_tmp))/(x2 -x1);
-                tmpVal = ((unsigned int)r<<(8*2)) + ((unsigned int)g<<(8*1)) + (unsigned int)b;
-            }
-            data_dst[j + (int)y_tmp*xRes_dst] = tmpVal;
-            cnt ++;
-        }
-    }
-    for (i = 0; i < xRes_src; i++)
-    {
-        x_tmp = floor(i*n);
-        for (j = 0; j < yRes_dst; j++)
-        {
-            y_tmp = j / n;
             y1 = floor(y_tmp);
             y2 = ceil(y_tmp);
-            if(y1 == y2) tmpVal = data_src[y1 + i*yRes_src];
+            if((x1 == x2) && (y1 != y2))
+            {
+                f11r = (data_src[y1 + x1*yRes_src]>>(8*2)) & 0xff;
+                f11g = (data_src[y1 + x1*yRes_src]>>(8*1)) & 0xff;
+                f11b = (data_src[y1 + x1*yRes_src]>>(8*0)) & 0xff;
+                f12r = (data_src[y2 + x1*yRes_src]>>(8*2)) & 0xff;
+                f12g = (data_src[y2 + x1*yRes_src]>>(8*1)) & 0xff;
+                f12b = (data_src[y2 + x1*yRes_src]>>(8*0)) & 0xff;
+                r = (f11r*(y_tmp - y1) + f12r*(y2 - y_tmp))/(y2 - y1);
+                g = (f11g*(y_tmp - y1) + f12g*(y2 - y_tmp))/(y2 - y1);
+                b = (f11b*(y_tmp - y1) + f12b*(y2 - y_tmp))/(y2 - y1);
+            }
+            else if ((y1 == y2) && (x1 != x2))
+            {
+                f11r = (data_src[y1 + x1*xRes_src]>>(8*2)) & 0xff;
+                f11g = (data_src[y1 + x1*xRes_src]>>(8*1)) & 0xff;
+                f11b = (data_src[y1 + x1*xRes_src]>>(8*0)) & 0xff;
+                f21r = (data_src[y1 + x2*xRes_src]>>(8*2)) & 0xff;
+                f21g = (data_src[y1 + x2*xRes_src]>>(8*1)) & 0xff;
+                f21b = (data_src[y1 + x2*xRes_src]>>(8*0)) & 0xff;
+                r = (f11r*(x_tmp - x1) + f21r*(x2 - x_tmp))/(x2 -x1);
+                g = (f11g*(x_tmp - x1) + f21g*(x2 - x_tmp))/(x2 -x1);
+                b = (f11b*(x_tmp - x1) + f21b*(x2 - x_tmp))/(x2 -x1);
+            }
+            else if((x1 == x2) && (y1 == y2)) tmpVal = data_src[x1 + y1*xRes_src];
             else
             {
-                f1r = (data_src[y1 + i*yRes_src]>>(8*2)) & 0xff;
-                f1g = (data_src[y1 + i*yRes_src]>>(8*1)) & 0xff;
-                f1b = (data_src[y1 + i*yRes_src]>>(8*0)) & 0xff;
-                f2r = (data_src[y2 + i*yRes_src]>>(8*2)) & 0xff;
-                f2g = (data_src[y2 + i*yRes_src]>>(8*1)) & 0xff;
-                f2b = (data_src[y2 + i*yRes_src]>>(8*0)) & 0xff;
-                r = (f1r*(y_tmp - y1) + f2r*(y2 - y_tmp))/(y2 - y1);
-                g = (f1g*(y_tmp - y1) + f2g*(y2 - y_tmp))/(y2 - y1);
-                b = (f1b*(y_tmp - y1) + f2b*(y2 - y_tmp))/(y2 - y1);
-                tmpVal = ((unsigned int)r<<(8*2)) + ((unsigned int)g<<(8*1)) + (unsigned int)b;
+                f11r = (data_src[y1 + x1*xRes_src]>>(8*2)) & 0xff;
+                f11g = (data_src[y1 + x1*xRes_src]>>(8*1)) & 0xff;
+                f11b = (data_src[y1 + x1*xRes_src]>>(8*0)) & 0xff;
+                f21r = (data_src[y1 + x2*xRes_src]>>(8*2)) & 0xff;
+                f21g = (data_src[y1 + x2*xRes_src]>>(8*1)) & 0xff;
+                f21b = (data_src[y1 + x2*xRes_src]>>(8*0)) & 0xff;
+                f12r = (data_src[y2 + x1*yRes_src]>>(8*2)) & 0xff;
+                f12g = (data_src[y2 + x1*yRes_src]>>(8*1)) & 0xff;
+                f12b = (data_src[y2 + x1*yRes_src]>>(8*0)) & 0xff;
+                f22r = (data_src[y2 + x2*yRes_src]>>(8*2)) & 0xff;
+                f22g = (data_src[y2 + x2*yRes_src]>>(8*1)) & 0xff;
+                f22b = (data_src[y2 + x2*yRes_src]>>(8*0)) & 0xff;
+                r = (f11r*(x_tmp - x1)*(y_tmp - y1) + f12r*(x_tmp - x1)*(y2 - y_tmp) + f21r*(x2 - x_tmp)*(y_tmp - y1) + f22r*(x2 - x_tmp)*(y2 - y_tmp))/((x2 - x1)*(y2 - y1));
+                g = (f11g*(x_tmp - x1)*(y_tmp - y1) + f12g*(x_tmp - x1)*(y2 - y_tmp) + f21g*(x2 - x_tmp)*(y_tmp - y1) + f22g*(x2 - x_tmp)*(y2 - y_tmp))/((x2 - x1)*(y2 - y1));
+                b = (f11b*(x_tmp - x1)*(y_tmp - y1) + f12b*(x_tmp - x1)*(y2 - y_tmp) + f21b*(x2 - x_tmp)*(y_tmp - y1) + f22b*(x2 - x_tmp)*(y2 - y_tmp))/((x2 - x1)*(y2 - y1));
             }
-            data_dst[j + (int)x_tmp*yRes_dst] = tmpVal;
-            cnt++;
+            tmpVal = ((unsigned int)r<<(8*2)) + ((unsigned int)g<<(8*1)) + (unsigned int)b;
+            data_dst[i + j*xRes_dst] = tmpVal;
+            cnt ++;
         }
     }
     printf("cnt = %d,data len = %d\n",cnt,info_dst->data_len);
