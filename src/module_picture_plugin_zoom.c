@@ -48,7 +48,7 @@ static int zoom_mode_1(p_picture_info info_src,p_picture_info info_dst, unsigned
         return -1;
     }
     double m,n,x_tmp,y_tmp,r,g,b;
-    unsigned int xRes_src,yRes_src,xRes_dst,yRes_dst,cnt;
+    unsigned int xRes_src,yRes_src,xRes_dst,yRes_dst;
     int i,j,x1,x2,y1,y2;
     unsigned int f11r,f12r,f21r,f22r,f11g,f12g,f21g,f22g,f11b,f12b,f21b,f22b,tmpVal;
     xRes_src = info_src->resX;
@@ -57,7 +57,6 @@ static int zoom_mode_1(p_picture_info info_src,p_picture_info info_dst, unsigned
     yRes_dst = info_dst->resY;
     m = (double)xRes_dst/xRes_src;
     n = (double)yRes_dst/yRes_src;
-    cnt = 0;
     for (i = 0; i < yRes_dst; i++)
     {
         for (j = 0; j < xRes_dst; j++)
@@ -116,7 +115,6 @@ static int zoom_mode_1(p_picture_info info_src,p_picture_info info_dst, unsigned
             cnt ++;
         }
     }
-    printf("cnt = %d,data len = %d\n",cnt,info_dst->data_len);
     return 0;
 }
 

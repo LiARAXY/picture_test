@@ -149,7 +149,6 @@ int picture_plugin_format_select(char *format_name)
     else
     {
         format_selected = tmp->operation;
-        printf("\npicture_plugin_select = %d\n",(unsigned int)format_selected);
         return 0;
     }
 }
